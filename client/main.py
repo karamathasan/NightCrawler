@@ -17,9 +17,6 @@ screen = pygame.display.set_mode((width, height))
 clock = pygame.time.Clock()
 running = True
 ip = "192.168.1.61"
-# ip = "192.168.1.77"
-
-# phone ip: 192.168.160.99
 
 def UI(left, right):
     pygame.draw.line(screen,"red",pygame.Vector2(width/2 - 50,height/2), pygame.Vector2(width/2 - 50, left * 100 + height/2), 25)

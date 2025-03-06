@@ -1,16 +1,23 @@
 from microdot import Microdot
 from microdot.websocket import with_websocket
 from microdot.cors import CORS
-from machine import Pin, PWM
+
 import ujson
 import asyncio 
 import network
 import env
 import time
 
+from leg import Leg
+from gaitDrive import GaitDrive
+
+left1 = Leg()
+left1.setJ1(90) 
+
 print("board start")
-LED = Pin("LED",Pin.OUT)
-LED.toggle()
+# LED = Pin("LED",Pin.OUT)
+# LED.toggle()
+
 
 
 # motor 1 is LF, motor 2 is LB
