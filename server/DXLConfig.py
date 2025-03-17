@@ -26,7 +26,7 @@ class DXLConfig():
         return cls.instance
 
     def __init__(self, devicename, baudrate = 1000000, protocol = 1.0):
-        self.DEVICENAME = devicename
+        self.DEVICENAME = devicename # DEVICENAME WILL BE DIFFERENT FORMAT FOR PI
         self.BAUDRATE = baudrate
         self.PROTOCOL_VERSION = protocol
 

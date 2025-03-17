@@ -18,8 +18,6 @@ print("board start")
 # LED = Pin("LED",Pin.OUT)
 # LED.toggle()
 
-
-
 # motor 1 is LF, motor 2 is LB
 # motor 3 is RB, motor 4 is LF
 
