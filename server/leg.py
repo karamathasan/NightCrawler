@@ -27,3 +27,6 @@ class Leg():
 
     def solve(self, position):
         pass
+
+    def getPosition(self):
+        pass
