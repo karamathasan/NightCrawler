@@ -1,5 +1,6 @@
 import numpy as np
 from DXLConfig import DXLConfig, Addresses
+from actions import ActionBase
 from dynamixel_sdk import *
 
 class Motor():
@@ -20,24 +21,15 @@ class Motor():
             raise Exception("Port not opened!")
 
         result, error = self.config.write1B(self.id, Addresses.TORQUE_ENABLE.value, 1)
-        if result != COMM_SUCCESS:
-            print("%s" % self.config.getResult(result))
-        elif error != 0:
-            print("%s" % self.config.getError(error))
-        else:
-            print(f"Dynamixel AX-12 ID: {self.id} Torque Enabled!")
+        self.handleError(result,error,"Failed to enable torque")
 
     def disable_torque(self):
         if not self.config.opened:
             raise Exception("Port not opened!")
 
         result, error = self.config.write1B(self.id, Addresses.TORQUE_ENABLE.value, 1)
-        if result != COMM_SUCCESS:
-            print("%s" % self.config.getResult(result))
-        elif error != 0:
-            print("%s" % self.config.getError(error))
-        else:
-            print(f"Dynamixel AX-12 ID: {self.id} Torque Disabled!")
+        self.handleError(result,error,"Failed to disable torque")
+
 
     def reset(self, newId = None):
         if not self.config.opened:
@@ -48,14 +40,17 @@ class Motor():
 
         if newId is not None:
             result, error = self.config.write1B(self.id, Addresses.ID.value, newId)
+            self.handleError(result,error)
             self.id = newId
 
     def getBounds(self):
         if not self.config.opened:
             raise Exception("Port not opened!")
 
-        cwByte, result, err = self.config.read2B(self.id, Addresses.CW_ANGLE_LIMIT.value)
-        ccwByte, result, err = self.config.read2B(self.id, Addresses.CCW_ANGLE_LIMIT.value)
+        cwByte, result, error = self.config.read2B(self.id, Addresses.CW_ANGLE_LIMIT.value)
+        self.handleError(result,error,"Failed to retrieve clockwise bound")
+        ccwByte, result, error = self.config.read2B(self.id, Addresses.CCW_ANGLE_LIMIT.value)
+        self.handleError(result,error,"Failed to retrieve counterclockwise bound")
         cwBound = self.byte2angle(cwByte)
         ccwBound = self.byte2angle(ccwByte)
 
@@ -70,8 +65,10 @@ class Motor():
         cwbyte = self.angle2byte(cwAngle)
         ccwbyte = self.angle2byte(ccwAngle)
 
-        result, err = self.config.write2B(self.id, Addresses.CW_ANGLE_LIMIT.value, cwbyte)
-        result, err = self.config.write2B(self.id, Addresses.CCW_ANGLE_LIMIT.value, ccwbyte)        
+        result, error = self.config.write2B(self.id, Addresses.CW_ANGLE_LIMIT.value, cwbyte)
+        self.handleError(result,error,"Failed to set clockwise bound")
+        result, error = self.config.write2B(self.id, Addresses.CCW_ANGLE_LIMIT.value, ccwbyte)        
+        self.handleError(result,error,"Failed to set counterclockwise bound")
 
     def setAngle(self, angle):
         angle = self.angle2byte(angle)
@@ -79,17 +76,14 @@ class Motor():
             raise Exception("Port not opened!")
         
         result, error = self.config.write2B(self.id, Addresses.GOAL_POSITION.value, angle)
-        if result != COMM_SUCCESS:
-            print("%s" % self.config.getResult(result))
-        elif error != 0:
-            print("%s" % self.config.getError(error))
+        self.handleError(result,error,"failed to set angle")        
 
     def getAngle(self):
         if not self.config.opened:
             raise Exception("Port not opened!")
         
         value, result, error = self.config.read2B(self.id, Addresses.GOAL_POSITION.value)
-        # print(f"Position bytes: {value}")
+        self.handleError(result,error,"Failed to retrieve angle")
         return self.byte2angle(value)
 
     def setPosition(self, position):
@@ -97,29 +91,22 @@ class Motor():
             raise Exception("Port not opened!")
         
         result, error = self.config.write2B(self.id, Addresses.GOAL_POSITION.value, position)
-        if result != COMM_SUCCESS:
-            print("%s" % self.config.getResult(result))
-        elif error != 0:
-            print("%s" % self.config.getError(error))
-    
+        self.handleError(result,error,"Failed to set position")
+
     def getPosition(self):
         if not self.config.opened:
             raise Exception("Port not opened!")
         
         value, result, error = self.config.read2B(self.id, Addresses.GOAL_POSITION.value)
-        # print(f"Position bytes: {value}")
+        self.handleError(result,error,"Failed to retrieve position")
         return value
-    
 
     def setSpeed(self, speedbytes=0):
         if not self.config.opened:
             raise Exception("Port not opened!")
         
         result, error = self.config.write2B(self.id, Addresses.MOVING_SPEED.value, speedbytes)
-        if result != COMM_SUCCESS:
-            print("%s" % self.config.getResult(result))
-        elif error != 0:
-            print("%s" % self.config.getError(error))
+        self.handleError(result,error,"Failed to set speed")
 
     def getSpeed(self):
         if not self.config.opened:
@@ -127,6 +114,8 @@ class Motor():
         
         value, result, error = self.config.read2B(self.id, Addresses.MOVING_SPEED.value)
         print(value)
+        self.handleError(result,error,"Failed to retrieve speed")
+        # return value
 
     def angle2byte(self, angle):
         assert self.bounds[0] <= angle <= self.bounds[1], f"Angle {angle} does fit in bounds {self.bounds[0],self.bounds[1]}"
@@ -140,3 +129,27 @@ class Motor():
         # range = self.bounds[1] - self.bounds[0]
         range = 300
         return int(range * byte/1023 + self.bounds[0])
+
+    def isMoving(self):
+        value, result, error = self.config.read1B(self.id, Addresses.MOVING.value)
+        self.handleError(result,error,"Failed to determine if moving")
+        return value == 1
+    
+    def handleError(self, result, error, message):
+        if result != COMM_SUCCESS:
+            print(f"MOTOR {self.id} ERROR: {message}")
+            print("%s" % self.config.getResult(result))
+        elif error != 0:
+            print("%s" % self.config.getError(error))
+
+class MotorAction(ActionBase):
+    def __init__(self, motor:Motor, angle):
+        self.motor = motor
+        self.angle = angle
+
+    def init(self):
+        self.motor.setAngle(self.angle)
+    
+    def isDone(self):
+        print(self.motor.isMoving())
+        return not self.motor.isMoving()

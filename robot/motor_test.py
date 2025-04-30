@@ -4,27 +4,40 @@ import time
 from leg import Leg
 conf = DXLConfig("COM9")
 conf.open()
-m = Motor(1)
-m2 = Motor(2)
-m3 = Motor(3)
+
+mr1 = Motor(1)
+mr2 = Motor(2)
+mr3 = Motor(3)
+right1 = Leg(True, mr1,mr2,mr3)
+
+mr4 = Motor(4)
+mr5 = Motor(5)
+mr6 = Motor(6)
+right2 = Leg(True,mr4,mr5,mr6)
+
+mr7 = Motor(7)
+mr8 = Motor(8)
+mr9 = Motor(9)
+right3 = Leg(True,mr7,mr8,mr9)
+
+mr1.reset()
+mr2.reset()
+mr3.reset()
+
+# print(m.getBounds())
+# print(m2.getBounds())
+# print(m3.getBounds())
+
 # m.enable_torque()
 # m2.enable_torque()
 # m3.enable_torque()
 
-m.reset()
-m2.reset()
-m3.reset()
+# print(right1.getJointAngles())
+time.sleep(2)
 
-right1 = Leg(True, m,m2,m3)
-right1.setJ1(45)
-right1.setJ2(45)
-right1.setJ3(-90)
 
-time.sleep(1)
 
-right1.setJ1(0)
-right1.setJ2(0)
-right1.setJ3(0)
+# print(right1.getJointAngles())
 
 # print(m.getAngle())
 # if m.getAngle() == 90:
@@ -40,8 +53,8 @@ right1.setJ3(0)
 # m2.setAngle(0)
 # m3.setAngle(0)
 
-# m.disable_torque()
-# m2.disable_torque()
+m.disable_torque()
+m2.disable_torque()
 # m3.disable_torque()
 conf.close()
 

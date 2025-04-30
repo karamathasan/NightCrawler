@@ -8,13 +8,18 @@ class GaitDrive():
         self.left = leftLegs
         self.right = rightLegs
 
+        self.swing_group = [leftLegs[0], rightLegs[1], leftLegs[2]]
+        self.stance_group = [rightLegs[0], leftLegs[1], rightLegs[2]]
         pass
 
-    def gait():
+    def gait(self):
         pass
 
-    def turn():
+    def turn(self):
         pass
 
-    def strafe():
+    def strafe(self):
+        pass
+
+    def balance(self):
         pass
