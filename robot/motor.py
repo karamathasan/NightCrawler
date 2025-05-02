@@ -56,6 +56,17 @@ class Motor():
 
         self.bounds = [cwBound, ccwBound]
         return self.bounds
+    
+    def getBoundsRaw(self):
+        if not self.config.opened:
+            raise Exception("Port not opened!")
+
+        cwByte, result, error = self.config.read2B(self.id, Addresses.CW_ANGLE_LIMIT.value)
+        self.handleError(result,error,"Failed to retrieve clockwise bound")
+        ccwByte, result, error = self.config.read2B(self.id, Addresses.CCW_ANGLE_LIMIT.value)
+        self.handleError(result,error,"Failed to retrieve counterclockwise bound")
+
+        return [cwByte, ccwByte] 
 
     def setBounds(self, cwAngle=-150, ccwAngle=150):
         if not self.config.opened:
@@ -128,7 +139,7 @@ class Motor():
     def byte2angle(self, byte):
         # range = self.bounds[1] - self.bounds[0]
         range = 300
-        return int(range * byte/1023 + self.bounds[0])
+        return int(range * byte/1023 - 150)
 
     def isMoving(self):
         value, result, error = self.config.read1B(self.id, Addresses.MOVING.value)
