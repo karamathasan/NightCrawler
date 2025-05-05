@@ -96,6 +96,15 @@ class DXLConfig():
                 print(f"Found Dynamixel at ID: {test_id}, Model: {dxl_model_number}")   
         print("Pinging complete")
 
+    def findFirstID(self):
+        for test_id in range(0, 254):
+        # for test_id in range(0, 19):
+            dxl_model_number, dxl_comm_result, dxl_error = self.packetHandler.ping(self.portHandler, test_id)
+            if dxl_comm_result == COMM_SUCCESS:
+                self.availableMotors.append(test_id)
+                print(f"Found Dynamixel at ID: {test_id}, Model: {dxl_model_number}")   
+                return test_id
+
 class Addresses(Enum):
     MODEL_NUMBER = 0 #2b
     FIRMWARE_VERSION = 2

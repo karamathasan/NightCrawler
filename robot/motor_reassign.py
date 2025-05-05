@@ -4,10 +4,10 @@ import time
 from leg import Leg
 conf = DXLConfig("COM9")
 conf.open()
-print(conf.findIDs())
+# print(conf.findIDs())
 
-current = 1
-new = 9
+# current = conf.findFirstID()
+# new = 18
 
 # m = Motor(current)
 # answer = input(f"Reassigning motor {current} to {new}. Continue?")

@@ -53,34 +53,79 @@ class Leg():
         return (self.motor1, self.motor2, self.motor3)
     
     def getJointAngles(self):
-        return (self.motor1.getAngle(), self.motor2.getAngle(), self.motor3.getAngle())
+        if self.right:
+            return (self.motor1.getAngle(), self.motor2.getAngle(), self.motor3.getAngle())
+        else:
+            return (-self.motor1.getAngle(), -self.motor2.getAngle(), -self.motor3.getAngle())
+
 
     def setJoint1(self, angle):
-        self.motor1.setAngle(angle)
+        if self.right:
+            self.motor1.setAngle(angle)
+        else:
+            self.motor1.setAngle(-angle)
 
     def setJoint2(self, angle):
-        self.motor2.setAngle(angle)
+        if self.right:
+            self.motor2.setAngle(angle)
+        else:
+            self.motor2.setAngle(-angle)
     
     def setJoint3(self, angle):
-        self.motor3.setAngle(angle)
+        if self.right:
+            self.motor3.setAngle(angle)
+        else:
+            self.motor3.setAngle(-angle)
 
     def setJoints(self, theta1, theta2, theta3):
-        self.motor1.setAngle(theta1)
-        self.motor2.setAngle(theta2)
-        self.motor3.setAngle(theta3)
+        if self.right:
+            self.motor1.setAngle(theta1)
+            self.motor2.setAngle(theta2)
+            self.motor3.setAngle(theta3)
+        else:
+            self.motor1.setAngle(-theta1)
+            self.motor2.setAngle(-theta2)
+            self.motor3.setAngle(-theta3)
 
     def setEndPosition(self, pos):
+        #TODO: Debug for left legs
+        def RY(rad):
+            return np.array([
+                [np.cos(rad), 0, np.sin(rad)],
+                [0,1,0],
+                [-np.sin(rad),0, np.cos(rad)]
+            ])
+    
         L0 = LegConstants.origin_disp
-        L1 = LegConstants.FEMUR
-        L2 = LegConstants.TIBIA
-        L3 = LegConstants.TARSUS
+        L1 = np.linalg.norm(LegConstants.FEMUR)
+        L2 = np.linalg.norm(LegConstants.TIBIA)
+        L3 = np.linalg.norm(LegConstants.TARSUS)
+        
+        p = np.sqrt(pos[0]**2 + pos[2]**2)
+        q = np.sqrt((pos[0]-self.leg_origin[0,0])**2 + (pos[2]-self.leg_origin[0,2])**2)
+        theta0 = np.deg2rad(self.leg_origin_angle)
+        theta1 = np.acos(round((p**2 -L0**2 - q**2)/(2*L0*q),5))
         if self.right:
-            theta1 = np.acos((np.dot(pos,pos)-L0**2 - L1**2)/(2*L0*L1))
-            posp = pos - self.leg_origin - L0*np.array([np.cos(theta1),0,np.sin(theta1)])
-            theta3 = -np.acos((np.linalg.norm(posp)-L2**2-L3**2)/(2 * L2 * L3))
-            theta2 = np.atan2(posp[1], np.sqrt(posp[0]**2 + posp[2]**2)) + np.atan2(L3 * np.sin(theta3), L2 + L3*np.cos(theta3))
+            rvec = pos - (self.leg_origin[0] + L1 * RY(theta0 + theta1) @ np.array([1,0,0]))
+            
+        else:
+            rvec = pos - (self.leg_origin[0] + L1 * RY(theta0 - theta1) @ np.array([1,0,0]))
+        print(pos)
+        rx = rvec[0]
+        ry = rvec[1]
+        rz = rvec[2]
+        r = np.linalg.norm(rvec)
+        
+        print(rvec)
+        s = -np.acos(round((r**2-L2**2-L3**2)/(2 * L2 * L3),9))
+        # print(s)
+        theta3 = round(s - LegConstants.tarsus_angle,5)
+        theta2 = round(np.atan2(ry, np.sqrt(rx**2 + rz**2)) - np.atan2(L3 * np.sin(s), L2 + L3*np.cos(s)),5)
+        # should only work for int type
+        return round(np.rad2deg(theta1)), -round(np.rad2deg(theta2)), -round(np.rad2deg(theta3))
 
-        print(np.rad2deg(theta1),np.rad2deg(theta2),np.rad2deg(theta3))
+        # set angles 
+
 
     def getEndPosition(self):
         def RZ(rad):
@@ -102,11 +147,16 @@ class Leg():
                 [rot, disp.T],
                 [np.zeros((1,3)),1]
             ])
-        
-        H0 = H(RY(np.deg2rad(self.leg_origin_angle)), self.leg_origin)
-        H1 = H(RY(np.deg2rad(self.motor1.getAngle())),LegConstants.FEMUR)
-        H2 = H(RZ(np.deg2rad(self.motor2.getAngle())),LegConstants.TIBIA)
-        H3 = H(RZ(np.deg2rad(self.motor3.getAngle())),LegConstants.TARSUS)
+        if self.right:
+            H0 = H(RY(np.deg2rad(self.motor1.getAngle() + self.leg_origin_angle)), self.leg_origin)
+            H1 = H(RZ(np.deg2rad(-self.motor2.getAngle())), LegConstants.FEMUR)
+            H2 = H(RZ(np.deg2rad(-self.motor3.getAngle())), LegConstants.TIBIA)
+            H3 = H(np.eye(3),LegConstants.TARSUS)
+        else:
+            H0 = H(RY(np.deg2rad(self.motor1.getAngle() + self.leg_origin_angle)), self.leg_origin)
+            H1 = H(RZ(np.deg2rad(self.motor2.getAngle())), LegConstants.FEMUR)
+            H2 = H(RZ(np.deg2rad(self.motor3.getAngle())), LegConstants.TIBIA)
+            H3 = H(np.eye(3),LegConstants.TARSUS)
         return (H0 @ H1 @ H2 @ H3) @ np.array([[0,0,0,1]]).T
     
     def followTrajectory(self, traj:Trajectory):
@@ -133,7 +183,7 @@ def positionEval(theta1, theta2, theta3):
             [np.zeros((1,3)),1]
         ])
     vec0 = np.array([[0,0,0,1]]).T
-    H0 = H(RY(np.deg2rad(theta1 + 60)), LegConstants.RIGHT1)
+    H0 = H(RY(np.deg2rad(theta1 - 60)), LegConstants.RIGHT3)
     p0 = (H0 @ vec0).T[0]
     H1 = H(RZ(np.deg2rad(-theta2)), LegConstants.FEMUR)
     p1 = (H0 @ H1 @ vec0).T[0]
@@ -145,10 +195,6 @@ def positionEval(theta1, theta2, theta3):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    print(p0)    
-    print(p1)    
-    print(p2)    
-    print(p3)    
     ax.scatter(0, 0, 0, c='red', marker='o')  
     ax.scatter(100, 0, 0, c='red', marker='o')  
     ax.scatter(0, 100, 0, c='red', marker='o')  
@@ -194,26 +240,23 @@ def angleEval(pos):
     rx = rvec[0]
     ry = rvec[1]
     rz = rvec[2]
-    # ry = 0
     r = np.linalg.norm(rvec)
-    # r = np.sqrt(rx**2 + ry**2 + rz**2)
-    
-    # print(np.linalg.norm(LegConstants.RIGHT1 + L1 * RY(theta0 + theta1) @ np.array([1,0,0])))
-    # print((r**2-L2**2-L3**2)/(2 * L2 * L3))
-    # s = -np.acos(round((r**2-L2**2-L3**2)/(2 * L2 * L3),5))
+
     s = -np.acos(round((r**2-L2**2-L3**2)/(2 * L2 * L3),9))
     theta3 = round(s - LegConstants.tarsus_angle,5)
     theta2 = round(np.atan2(ry, np.sqrt(rx**2 + rz**2)) - np.atan2(L3 * np.sin(s), L2 + L3*np.cos(s)),5)
 
     print(np.rad2deg(theta1),np.rad2deg(theta2),np.rad2deg(theta3))
-    # return np.array([np.rad2deg(theta1),np.rad2deg(theta2),np.rad2deg(theta3)])
+
 class LegConstants():
     # in mm
     FEMUR = np.array([[67.5,0,0]])
     TIBIA = np.array([[67.5,0,0]])
     TARSUS = np.array([[188.517,-39.055,0]])
+
     tarsus_angle = np.atan2(-39.055,188.517)
     origin_disp = 123.099
+    
     RIGHT1 = np.array([[origin_disp*np.cos(np.pi/3),16,-origin_disp*np.sin(np.pi/3)]])
     RIGHT2 = np.array([[origin_disp,16,0]])
     RIGHT3 = np.array([[origin_disp*np.cos(np.pi/3),16,origin_disp*np.sin(np.pi/3)]])
@@ -221,3 +264,9 @@ class LegConstants():
     LEFT1 = np.array([[-origin_disp*np.cos(np.pi/3),16,-origin_disp*np.sin(np.pi/3)]])
     LEFT2 = np.array([[-origin_disp,16,0]])
     LEFT3 = np.array([[-origin_disp*np.cos(np.pi/3),16,origin_disp*np.sin(np.pi/3)]])
+
+# class FollowTrajectory():
+#     def __init__(self, leg:Leg, traj:Trajectory):
+#         self.elapsed = 0
+
+#     def 

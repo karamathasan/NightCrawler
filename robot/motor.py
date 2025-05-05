@@ -40,7 +40,7 @@ class Motor():
 
         if newId is not None:
             result, error = self.config.write1B(self.id, Addresses.ID.value, newId)
-            self.handleError(result,error)
+            self.handleError(result,error,"Failed to assign new ID")
             self.id = newId
 
     def getBounds(self):
@@ -82,12 +82,19 @@ class Motor():
         self.handleError(result,error,"Failed to set counterclockwise bound")
 
     def setAngle(self, angle):
+        def wait():
+            while self.isMoving():
+                pass
+            return 
+        
         angle = self.angle2byte(angle)
         if not self.config.opened:
             raise Exception("Port not opened!")
         
         result, error = self.config.write2B(self.id, Addresses.GOAL_POSITION.value, angle)
-        self.handleError(result,error,"failed to set angle")        
+        self.handleError(result,error,"failed to set angle")    
+
+        return wait
 
     def getAngle(self):
         if not self.config.opened:

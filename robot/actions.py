@@ -1,11 +1,10 @@
-
 from abc import ABC
 
 class ActionBase(ABC):
     def init(self):
         pass
 
-    def execute(self):
+    def execute(self, dt):
         pass
 
     def end(self):
@@ -23,7 +22,7 @@ class ActionGroup(ActionBase):
         for action in self.actions:
             action.init()
 
-    def execute(self):
+    def execute(self, dt):
         for action in self.actions:
             action.execute()
 
