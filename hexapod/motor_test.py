@@ -2,7 +2,7 @@ from DXLConfig import DXLConfig
 from motor import Motor
 import time
 import numpy as np
-from leg import Leg, angleEval, positionEval
+from leg import Leg
 conf = DXLConfig("COM9")
 conf.open()
 
@@ -59,8 +59,8 @@ left1 = Leg(False, 1, mr10, mr11, mr12)
 # mr12.setAngle(0)
 
 left1.setJoints(0,0,0)
-end = left1.getEndPosition()
-print(left1.setEndPosition(end.T[0,0:3]))
+end = left1.findEndPosition()
+print(left1.solveEndPosition(end.T[0,0:3]))
 
 # print(init)
 # print(fin)

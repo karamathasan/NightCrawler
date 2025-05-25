@@ -30,7 +30,6 @@ class Motor():
         result, error = self.config.write1B(self.id, Addresses.TORQUE_ENABLE.value, 1)
         self.handleError(result,error,"Failed to disable torque")
 
-
     def reset(self, newId = None):
         if not self.config.opened:
             raise Exception("Port not opened!")
@@ -146,7 +145,8 @@ class Motor():
     def byte2angle(self, byte):
         # range = self.bounds[1] - self.bounds[0]
         range = 300
-        return int(range * byte/1023 - 150)
+        return (range * byte/1023 - 150)
+        # return int(range * byte/1023 - 150)
 
     def isMoving(self):
         value, result, error = self.config.read1B(self.id, Addresses.MOVING.value)

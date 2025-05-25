@@ -88,8 +88,8 @@ class DXLConfig():
         return self.packetHandler.getRxPacketError(error)
 
     def findIDs(self):
-        for test_id in range(0, 254):
-        # for test_id in range(0, 19):
+        # for test_id in range(0, 254):
+        for test_id in range(0, 19):
             dxl_model_number, dxl_comm_result, dxl_error = self.packetHandler.ping(self.portHandler, test_id)
             if dxl_comm_result == COMM_SUCCESS:
                 self.availableMotors.append(test_id)

@@ -4,7 +4,7 @@ class ActionBase(ABC):
     def init(self):
         pass
 
-    def execute(self, dt):
+    def execute(self):
         pass
 
     def end(self):
@@ -22,7 +22,7 @@ class ActionGroup(ActionBase):
         for action in self.actions:
             action.init()
 
-    def execute(self, dt):
+    def execute(self):
         for action in self.actions:
             action.execute()
 
@@ -51,5 +51,8 @@ class ActionQueue():
     
     def isEmpty(self):
         return (len(self.queue) == 0)
+    
+    def clear(self):
+        self.queue = []
     
 
