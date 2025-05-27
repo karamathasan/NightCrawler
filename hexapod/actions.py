@@ -1,4 +1,5 @@
 from abc import ABC
+import time
 
 class ActionBase(ABC):
     def init(self):
@@ -55,4 +56,12 @@ class ActionQueue():
     def clear(self):
         self.queue = []
     
+class Wait(ActionBase):
+    def __init__(self, time):
+        self.wait_time = time
 
+    def init(self):
+        self.start = time.time()
+
+    def isDone(self):
+        return time.time()-self.start >= self.wait_time

@@ -1,5 +1,6 @@
 from motor import Motor
 from trajectory import Trajectory, LinearTrajectory
+from motion_profile import LinearProfile, TrapezoidalProfile
 from enum import Enum
 from actions import ActionBase, ActionGroup
 import numpy as np
@@ -82,6 +83,11 @@ class Leg():
             self.motor3.setAngle(-angle)
 
     def setJoints(self, theta1, theta2, theta3):
+        def wait():
+            while self.isMoving():
+                pass
+            return 
+        
         if self.right:
             self.motor1.setAngle(theta1)
             self.motor2.setAngle(theta2)
@@ -90,6 +96,8 @@ class Leg():
             self.motor1.setAngle(-theta1)
             self.motor2.setAngle(-theta2)
             self.motor3.setAngle(-theta3)
+
+        return wait
 
     def setSpeeds(self, byte1=0, byte2=0, byte3=0):
         self.motor1.setSpeed(byte1)
@@ -115,10 +123,15 @@ class Leg():
         p = np.sqrt(pos[0]**2 + pos[2]**2)
         q = np.sqrt((pos[0]-self.leg_origin[0,0])**2 + (pos[2]-self.leg_origin[0,2])**2)
         theta0 = np.deg2rad(self.leg_origin_angle)
-        theta1 = np.acos(round((p**2 -L0**2 - q**2)/(2*L0*q),5))
+        theta1 = np.acos(round((p**2 -L0**2 - q**2)/(2*L0*q),9))
+
+        if pos[2] - self.leg_origin[0,2] > 0:
+            theta1 *= -1
+        # print(f"theta 1: {np.rad2deg(theta1)}")
+        # print(np.rad2deg(theta0+theta1))
+
         if self.right:
             rvec = pos - (self.leg_origin[0] + L1 * RY(theta0 + theta1) @ np.array([1,0,0]))
-            
         else:
             rvec = pos - (self.leg_origin[0] + L1 * RY(theta0 - theta1) @ np.array([1,0,0]))
         # print(pos)
@@ -127,13 +140,25 @@ class Leg():
         rz = rvec[2]
         r = np.linalg.norm(rvec)
         
-        # print(rvec)
         s = -np.acos(round((r**2-L2**2-L3**2)/(2 * L2 * L3),9))
         # print(s)
-        theta3 = round(s - LegConstants.tarsus_angle,5)
-        theta2 = round(np.atan2(ry, np.sqrt(rx**2 + rz**2)) - np.atan2(L3 * np.sin(s), L2 + L3*np.cos(s)),5)
-        # should only work for int type
-        return round(np.rad2deg(theta1), 5), -round(np.rad2deg(theta2), 5), -round(np.rad2deg(theta3), 5)
+        theta3 = round(s - LegConstants.tarsus_angle,9)
+        theta2 = round(np.atan2(ry, np.sqrt(rx**2 + rz**2)) - np.atan2(L3 * np.sin(s), L2 + L3*np.cos(s)),9)
+
+        theta1 = np.rad2deg(theta1)
+        theta2 = np.rad2deg(theta2)
+        theta3 = np.rad2deg(theta3)
+        
+        if 90<np.abs(theta1)<91:
+            theta1 = np.clip(theta1,-90,90)
+
+        if 90<np.abs(theta2)<91:
+            theta2 = np.clip(theta2,-90,90)       
+
+        if 90<np.abs(theta3)<91:
+            theta3 = np.clip(theta3,-90,90)
+
+        return round((theta1)), -round((theta2)), -round((theta3))
 
         # set angles 
 
@@ -192,7 +217,7 @@ class LegConstants():
     LEFT3 = np.array([[-origin_disp*np.cos(np.pi/3),16,origin_disp*np.sin(np.pi/3)]])
 
 class TranslateLeg(ActionBase):
-    def __init__(self, leg:Leg, global_translation: np.ndarray, duration = 1):
+    def __init__(self, leg:Leg, global_translation: np.ndarray, duration = 1, profile = LinearProfile()):
         self.translation = global_translation
         assert(self.translation.shape == (3,))
         self.leg = leg
@@ -201,38 +226,17 @@ class TranslateLeg(ActionBase):
         self.start = time.time()
         self.elapsed = 0
 
+        self.profile = profile
         self.trajectory: LinearTrajectory = None
-        self.done = False
-        # self.trajectory = LinearTrajectory(leg.findEndPosition().T[0,:3], leg.findEndPosition().T[0,:3] + self.translation, self.duration)
+        self.maxspeed=300
         
     def init(self):
+        self.trajectory = LinearTrajectory(self.leg.findEndPosition().T[0,:3], self.leg.findEndPosition().T[0,:3] + self.translation, self.duration, self.profile)
         self.start = time.time()
-        self.trajectory = LinearTrajectory(self.leg.findEndPosition().T[0,:3], self.leg.findEndPosition().T[0,:3] + self.translation, self.duration)
-        print("start: " + str(self.trajectory.start))
-        print("end: " + str(self.trajectory.end))
 
-        # dt = time.time() - self.start
         dt = time.time() - self.start
         self.elapsed = dt
-        # self.elapsed += dt
 
-        print(self.elapsed/self.trajectory.duration)
-        goal = self.trajectory.sample(self.elapsed/self.trajectory.duration)
-        print("goal: " + str(goal))
-        # phi1 = self.leg.findEndPosition()
-        # phi2 = self.leg.solveEndPosition(goal)
-
-        angles = self.leg.solveEndPosition(goal)
-        print(angles)
-        self.leg.setJoints(*angles)
-
-    def execute(self):
-        # print(self.elapsed)
-
-        dt = time.time() - self.elapsed
-        self.elapsed = time.time()-self.start
-
-        # print(f"{self.elapsed/self.trajectory.duration}")
         goal = self.trajectory.sample(self.elapsed/self.trajectory.duration)
 
         phi1 = np.asarray(self.leg.getJointAngles())
@@ -242,77 +246,80 @@ class TranslateLeg(ActionBase):
         
         delta = np.abs(phi2 - phi1)
 
-        maxspeed = 300
         relativeSpeeds = (delta/np.max(delta))
-        self.leg.setSpeeds(*(np.int32(maxspeed * relativeSpeeds)))
+        self.leg.setSpeeds(*(np.int32(self.maxspeed * relativeSpeeds)))
         self.leg.setJoints(*angles)
 
-    def moveToSample(self):
-        dt = time.time() - self.start
-        self.elapsed += dt
+    def execute(self):
+        dt = time.time() - self.elapsed
+        self.elapsed = time.time() - self.start
 
         goal = self.trajectory.sample(self.elapsed/self.trajectory.duration)
 
-        # phi1 = np.asarray(self.leg.getJointAngles())
-        # phi2 = np.asarray(self.leg.solveEndPosition(goal))
+        phi1 = np.asarray(self.leg.getJointAngles())
+        phi2 = np.asarray(self.leg.solveEndPosition(goal))
 
         angles = self.leg.solveEndPosition(goal)
-
-        # delta = phi2 - phi1
-        # relativeSpeeds = delta/np.max(delta)
         
-        # self.leg.setSpeeds(*(self.max_speed * relativeSpeeds))
+        delta = np.abs(phi2 - phi1)
+
+        relativeSpeeds = (delta/np.max(delta))
+        self.leg.setSpeeds(*(np.int32(self.maxspeed * relativeSpeeds)))
         self.leg.setJoints(*angles)
 
     def isDone(self):
-        # return self.done
-    
-        # return not self.leg.isMoving()
-        # print("     Is Done?")
-        # print(self.trajectory.end)
-        # print(self.leg.findEndPosition().T[0,:3])
+        return np.allclose(self.leg.findEndPosition().T[0,:3], self.trajectory.end, atol=2)
 
-        return np.allclose(self.leg.findEndPosition().T[0,:3], self.trajectory.end, atol=0.7)
-        
-        # return np.all(self.leg.findEndPosition() == self.trajectory.end)
-
-    def end(self):
-        print(self.trajectory.end)
-        print(self.leg.findEndPosition().T[0,:3])
+    def getTrajectory(self):
+        return self.trajectory
 
 
 class FollowTrajectory(ActionBase):
     def __init__(self, leg:Leg, trajectory: Trajectory):
-        self.trajectory = trajectory
-        self.elapsed = 0
-        self.max_speed = 1024
         self.leg = leg
-        # startAngles = leg.setEndPosition(trajectory.start)
-        # endAngles = leg.setEndPosition(trajectory.end)
-        # angleDiff = endAngles-startAngles
+        self.trajectory = trajectory
 
-        # maxAngle = np.max(angleDiff)
-        # relativeSpeeds = angleDiff/maxAngle
+        self.elapsed = 0
+
+        self.start = time.time()
+        self.elapsed = 0
+        self.maxspeed = 300
 
     def init(self):
-        self.start = time.time()
-        return 
-    
-    def execute(self):
         dt = time.time() - self.start
-        self.elapsed += dt
+        assert np.allclose(self.leg.findEndPosition().T[0,:3], self.trajectory.start, atol=2), f"Invalid start,error: {self.leg.findEndPosition().T[0,:3] - self.trajectory.start}"
+        self.start = time.time()
+        self.elapsed = dt
 
         goal = self.trajectory.sample(self.elapsed/self.trajectory.duration)
 
-        phi1 = self.leg.findEndPosition()
-        phi2 = self.leg.solveEndPosition(goal)
+        phi1 = np.asarray(self.leg.getJointAngles())
+        phi2 = np.asarray(self.leg.solveEndPosition(goal))
 
-        delta = phi2 - phi1
-        relativeSpeeds = delta/np.max(delta)
+        angles = self.leg.solveEndPosition(goal)
         
-        self.leg.setSpeeds(*(self.max_speed * relativeSpeeds))
-        # return super().execute(dt)
+        delta = np.abs(phi2 - phi1)
+
+        relativeSpeeds = (delta/np.max(delta))
+        self.leg.setSpeeds(*(np.int32(self.maxspeed * relativeSpeeds)))
+        self.leg.setJoints(*angles)
+    
+    def execute(self):
+        dt = time.time() - self.start
+        self.elapsed = time.time() - self.start
+
+        goal = self.trajectory.sample(self.elapsed/self.trajectory.duration)
+
+        phi1 = np.asarray(self.leg.getJointAngles())
+        phi2 = np.asarray(self.leg.solveEndPosition(goal))
+
+        angles = self.leg.solveEndPosition(goal)
+        
+        delta = np.abs(phi2 - phi1)
+
+        relativeSpeeds = (delta/np.max(delta))
+        self.leg.setSpeeds(*(np.int32(self.maxspeed * relativeSpeeds)))
+        self.leg.setJoints(*angles)
 
     def isDone(self):
-        # return self.leg.isMoving()
-        return self.leg.findEndPosition() == self.trajectory.end
+        return np.allclose(self.leg.findEndPosition().T[0,:3], self.trajectory.end, atol=2.5)

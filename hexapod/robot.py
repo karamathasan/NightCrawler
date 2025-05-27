@@ -53,7 +53,7 @@ class Robot():
     #         pass
 
     def run(self):
-        if not self.queue.isEmpty():
+        if not self.queue.isEmpty() or self.queue.active is not None:
             if self.queue.active is None:
                 action = self.queue.pop()
                 self.queue.active = action

@@ -135,7 +135,7 @@ class Motor():
         # return value
 
     def angle2byte(self, angle):
-        assert self.bounds[0] <= angle <= self.bounds[1], f"Angle {angle} does fit in bounds {self.bounds[0],self.bounds[1]}"
+        assert self.bounds[0] <= angle <= self.bounds[1], f"Angle {angle} does fit in bounds {self.bounds[0],self.bounds[1]} for Motor {self.id}"
         # range = self.bounds[1] - self.bounds[0]
         # shifted = angle - self.bounds[0]
         range = 300
