@@ -19,16 +19,9 @@ class Robot():
             self.fsm = FiniteStateMachine()
 
         self.running = True
-        # self.r1 = Leg()
-        # self.r2 = Leg()
-        # self.r3 = Leg()
 
-        # self.l1 = Leg()
-        # self.l2 = Leg()
-        # self.l3 = Leg()
 
         self.queue = ActionQueue()
-        # self.driver = GaitDrive([self.l1, self.l2, self.l3], [self.r1, self.r2, self.r3])
         self.driver = gait_drive
         self.vision = Vision()
 

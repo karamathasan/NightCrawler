@@ -8,9 +8,9 @@ import numpy as np
 from leg import Leg
 
 from trajectory import LinearTrajectory, QuadraticTrajectory
-from leg import FollowTrajectory, TranslateLeg
+from leg_actions import FollowTrajectory, TranslateLeg
 from motion_profile import LinearProfile, TrapezoidalProfile, CuberootProfile
-from actions import ActionQueue, ActionGroup, Wait
+from actions import ActionQueue, ActionGroup, RepeatingGroup, Wait
 
 conf = DXLConfig("COM9")
 conf.open()
@@ -42,13 +42,13 @@ def zero_legs():
 
 #   REST POSITION
 def lotus_rest():
-    right1.setJoints(0,-70,-90)
-    right2.setJoints(0,-70,-90)
-    right3.setJoints(0,-70,-90)
+    right1.setJoints(0,-80,-90)
+    right2.setJoints(0,-80,-90)
+    right3.setJoints(0,-80,-90)
 
-    left1.setJoints(0,-70,-90)
-    left2.setJoints(0,-70,-90)
-    left3.setJoints(0,-70,-90)
+    left1.setJoints(0,-80,-90)
+    left2.setJoints(0,-80,-90)
+    left3.setJoints(0,-80,-90)
 
 #   STAND 
 def stand():
@@ -74,77 +74,161 @@ def half_stance():
 lotus_rest()
 # stand()()
 
-# right2.setJoints(30,-30,30)()
-# print(right2.solveEndPosition(right2.findEndPosition().T[0,:3]))
-# right2.setJoints(-30,-30,30)()
-# print(right2.solveEndPosition(right2.findEndPosition().T[0,:3]))
 
-# right2.setJoints(30,-20,80)
-
-# time.sleep(1.5)
+time.sleep(1)
 
 queue = ActionQueue()
-# start = right2.findEndPosition().T[0,:3]
-# print(start)
-# c1 = start + np.array([60,30,0])
-# end = start + np.array([70,220,0])
-# qt = QuadraticTrajectory(start,end,c1,1)
-# queue.push(FollowTrajectory(right2, qt))
 
-disp = 70
-dur = 0.3
+disp = 60
+dur = 0.5
+speed = 300
+height = 35
 
+# RIGHT1 STEP
 # queue.push(
-#     ActionGroup(
-#         TranslateLeg(right1, np.array([0,0,-disp]), dur),
-#         TranslateLeg(left3, np.array([0,0,disp]), dur)
+#     RepeatingGroup(
+#         FollowTrajectory(
+#             right1,
+#             QuadraticTrajectory(
+#                 right1.findEndPosition().T[0,:3],
+#                 right1.findEndPosition().T[0,:3] + np.array([0,0,-disp]),
+#                 right1.findEndPosition().T[0,:3] + np.array([0,height,-disp/2]),
+#                 dur
+#             ),
+#             speed
+#         ),
+#         TranslateLeg(right1, np.array([0,0,disp]), dur, maxspeed=speed),
 #     )
 # )
+
+# LEFT1 STEP
+# queue.push(
+#     RepeatingGroup(
+#         FollowTrajectory(
+#             left1,
+#             QuadraticTrajectory(
+#                 left1.findEndPosition().T[0,:3],
+#                 left1.findEndPosition().T[0,:3] + np.array([0,0,-disp]),
+#                 left1.findEndPosition().T[0,:3] + np.array([0,35,-disp/2]),
+#                 dur
+#             ),
+#             speed
+#         ),
+#         TranslateLeg(left1, np.array([0,0,disp]), dur, maxspeed=speed),
+#     )
+# )
+
 # queue.push(Wait(1))
+# queue.push(
+#             TranslateLeg(right2, np.array([0,0,-disp/2]), dur),
+# )
+
+# SPEED BUG WITH LEFT 1
+# LEFT FORWARD CONFIG
 # queue.push(
 #     ActionGroup(
 #         ActionGroup(
-#             TranslateLeg(right1, np.array([0,0,disp]), dur),
-#             TranslateLeg(left2, np.array([0,0,disp]), dur),
+#             # TranslateLeg(right1, np.array([0,0,-disp]), dur),
+#             TranslateLeg(left2, np.array([0,0,disp/2]), dur),
 #             TranslateLeg(right3, np.array([0,0,disp]), dur)
 #         ),
 #         ActionGroup(
-#             TranslateLeg(left1, np.array([0,0,-disp]), dur),
-#             TranslateLeg(right2, np.array([0,0,-disp]), dur),
-#             TranslateLeg(left3, np.array([0,0,-disp]), dur)
+#             # TranslateLeg(left1, np.array([0,0,-disp]), dur),
+#             TranslateLeg(right2, np.array([0,0,-disp/2]), dur),
+#             # TranslateLeg(left3, np.array([0,0,disp]), dur)
 #         )
 #     )
 # )
 
-# queue.push(
-#     ActionGroup(
-#         ActionGroup(
-#             TranslateLeg(right1, np.array([0,0,-disp]), 0.5),
-#             TranslateLeg(left2, np.array([0,0,-disp]), 0.5),
-#             TranslateLeg(right3, np.array([0,0,-disp]), 0.5)
-#         ),
-#         ActionGroup(
-#             TranslateLeg(left1, np.array([0,0,disp]), 0.5),
-#             TranslateLeg(right2, np.array([0,0,disp]), 0.5),
-#             TranslateLeg(left3, np.array([0,0,disp]), 0.5)
-#         )
-#     )
-# )
-# queue.push()
-# queue.push()
-# queue.push(TranslateLeg(right2, np.array([0,-70,0]), 1, TrapezoidalProfile()))
+# IGNORING LEFT 1
+leftStance = ActionGroup(
+    # FollowTrajectory(
+    #     left1,
+    #     QuadraticTrajectory(
+    #         left1.findEndPosition().T[0,:3],
+    #         left1.findEndPosition().T[0,:3] + np.array([0,0,disp]),
+    #         left1.findEndPosition().T[0,:3] + np.array([0,height,disp/2]),
+    #         dur
+    #     ),
+    #     speed
+    # ),
+    FollowTrajectory(
+        right2,
+        QuadraticTrajectory(
+            right2.findEndPosition().T[0,:3],
+            right2.findEndPosition().T[0,:3] + np.array([0,0,-disp]),
+            right2.findEndPosition().T[0,:3] + np.array([0,height,disp/2]),
+            dur
+        ),
+        speed
+    ),
+    FollowTrajectory(
+        left3,
+        QuadraticTrajectory(
+            left3.findEndPosition().T[0,:3],
+            left3.findEndPosition().T[0,:3] + np.array([0,0,-disp]),
+            left3.findEndPosition().T[0,:3] + np.array([0,height,-disp/2]),
+            dur
+        ),
+        speed
+    )
+)
 
+rightStance = ActionGroup(
+    FollowTrajectory(
+        right1,
+        QuadraticTrajectory(
+            right1.findEndPosition().T[0,:3],
+            right1.findEndPosition().T[0,:3] + np.array([0,0,-disp]),
+            right1.findEndPosition().T[0,:3] + np.array([0,height,-disp/2]),
+            dur
+        ),
+        speed
+    ),
+    FollowTrajectory(
+        left2,
+        QuadraticTrajectory(
+            left2.findEndPosition().T[0,:3],
+            left2.findEndPosition().T[0,:3] + np.array([0,0,-disp]),
+            left2.findEndPosition().T[0,:3] + np.array([0,height,-disp/2]),
+            dur
+        ),
+        speed
+    ),
+    FollowTrajectory(
+        right3,
+        QuadraticTrajectory(
+            right3.findEndPosition().T[0,:3],
+            right3.findEndPosition().T[0,:3] + np.array([0,0,-disp]),
+            right3.findEndPosition().T[0,:3] + np.array([0,height,-disp/2]),
+            dur
+        ),
+        speed
+    )
+)
 
-print(f"""
-    event = right1.setJoints({right1.getJointAngles()})
-    right2.setJoints({right2.getJointAngles()})
-    right3.setJoints({right3.getJointAngles()})
+leftPower = ActionGroup(
+    TranslateLeg(right2, np.array([0,0,disp]),dur),
+    TranslateLeg(left3, np.array([0,0,disp]),dur),
+)
 
-    left1.setJoints({left1.getJointAngles()})
-    left2.setJoints({left2.getJointAngles()})
-    left3.setJoints({left3.getJointAngles()})
-    return event
-""")
+rightPower = ActionGroup(
+    TranslateLeg(right1, np.array([0,0,disp]),dur),
+    TranslateLeg(left2, np.array([0,0,disp]),dur),
+    TranslateLeg(right3, np.array([0,0,disp]),dur)
+)
+
+queue.push(
+    RepeatingGroup(
+        ActionGroup(
+            rightStance
+        ),
+        ActionGroup(
+            rightPower
+        )
+    )
+)
+
 queue.clear()
 while not queue.isEmpty() or queue.active is not None:
     if queue.active is None:
@@ -158,16 +242,24 @@ while not queue.isEmpty() or queue.active is not None:
         else:
             queue.active.execute()
 
-# print(right2.findEndPosition().T[0,:3])
-# print(right2.solveEndPosition(right2.findEndPosition().T[0,:3]))
-# time.sleep(1)
+print(f"""
+    {right1.findEndPosition().T[0,:3]}
+    {right2.findEndPosition().T[0,:3]}
+    {right3.findEndPosition().T[0,:3]}
 
-# right1.setJoints(0,0,0)
-# right2.setJoints(0,0,0)
-# right3.setJoints(0,0,0)
+    {left1.findEndPosition().T[0,:3]}
+    {left2.findEndPosition().T[0,:3]}
+    {left3.findEndPosition().T[0,:3]}
+""")
 
-# left1.setJoints(0,0,0)
-# left2.setJoints(0,0,0)
-# left3.setJoints(0,0,0)
+# print(f"""
+#     {right1.getJointAngles()}
+#     {right2.getJointAngles()}
+#     {right3.getJointAngles()}
+
+#     {left1.getJointAngles()}
+#     {left2.getJointAngles()}
+#     {left3.getJointAngles()}
+# """)
 
 conf.close()

@@ -29,7 +29,6 @@ class TrapezoidalProfile(MotionProfile):
         else:
             return t
 
-
 class CuberootProfile(MotionProfile):
     def __init__(self):
         self.profiling_function = lambda x: np.cbrt(x-0.5)/np.cbrt(4)+0.5

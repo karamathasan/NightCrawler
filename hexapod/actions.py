@@ -17,7 +17,6 @@ class ActionBase(ABC):
 class ActionGroup(ActionBase):
     def __init__(self, *actions:ActionBase):
         self.actions = actions
-        # self.timeout = 30
 
     def init(self):
         for action in self.actions:
@@ -65,3 +64,44 @@ class Wait(ActionBase):
 
     def isDone(self):
         return time.time()-self.start >= self.wait_time
+    
+class SequentialGroup(ActionGroup):
+    def __init__(self, *actions: ActionBase):
+        self.actions = [*actions]
+        self.active = self.actions.pop(0)
+
+    def init(self):
+        self.active.init()
+
+    def execute(self):
+        if not self.active.isDone():
+            self.active.execute()
+        elif self.active.isDone():
+            if len(self.actions) > 0:
+                self.active = self.actions.pop(0)
+                self.active.init()
+        
+    def isDone(self):
+        return len(self.actions) == 0 and self.active.isDone()
+    
+class RepeatingGroup(ActionGroup):
+    def __init__(self, *actions: ActionBase):
+        super().__init__()
+        self.actions = [*actions]
+        self.position = 0
+        self.active = self.actions[0]
+
+    def init(self):
+        self.active.init()
+
+    def execute(self):
+        if not self.active.isDone():
+            self.active.execute()
+        else:
+            self.position = (self.position + 1) % len(self.actions)
+            self.active = self.actions[self.position]
+            self.active.init()
+    
+    def isDone(self):
+        return False
+    

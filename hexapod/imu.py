@@ -5,8 +5,6 @@ import math
 
 # IMU Addresses
 BNO055_ADDRESS = 0x28
-LSM6DOS_ADDRESS = 0x6A
-LIS3MDL_ADDRESS = 0x1C  # Address stays the same
 
 # BNO055 Registers
 BNO055_CHIP_ID = 0x00
@@ -111,7 +109,7 @@ class IMUSensor:
         result = {}
         
         # BNO055 data
-        bno055_data = self.read_bno055_data()
+        bno055_data = self.read_data()
         if bno055_data:
             result['bno055'] = bno055_data
         
@@ -139,20 +137,7 @@ def main():
                 print(f"Mag (µT): X={bno['mag']['x']:.2f}, Y={bno['mag']['y']:.2f}, Z={bno['mag']['z']:.2f}")
                 print(f"Euler (deg): Heading={bno['euler']['heading']:.2f}, Roll={bno['euler']['roll']:.2f}, Pitch={bno['euler']['pitch']:.2f}")
                 print(f"Quaternion: W={bno['quaternion']['w']:.4f}, X={bno['quaternion']['x']:.4f}, Y={bno['quaternion']['y']:.4f}, Z={bno['quaternion']['z']:.4f}")
-            
-            # Print LSM6DOS data if available
-            if 'lsm6dos' in data:
-                print("\n=== LSM6DOS Data ===")
-                lsm = data['lsm6dos']
-                print(f"Accel (m/s²): X={lsm['accel']['x']:.2f}, Y={lsm['accel']['y']:.2f}, Z={lsm['accel']['z']:.2f}")
-                print(f"Gyro (deg/s): X={lsm['gyro']['x']:.2f}, Y={lsm['gyro']['y']:.2f}, Z={lsm['gyro']['z']:.2f}")
-            
-            # Print LIS3MDL data if available
-            if 'lis3mdl' in data:
-                print("\n=== LIS3MDL Data ===")
-                lis = data['lis3mdl']
-                print(f"Mag (µT): X={lis['mag']['x']:.2f}, Y={lis['mag']['y']:.2f}, Z={lis['mag']['z']:.2f}")
-            
+                     
             time.sleep(0.5)  # Update every 0.5 seconds
             
     except KeyboardInterrupt:
