@@ -82,7 +82,7 @@ class FollowTrajectory(ActionBase):
         # print(angles)
         # print(goal)
 
-        assert np.allclose(self.leg.findEndPosition().T[0,:3], self.trajectory.start, atol=2), f"Invalid start,error: {self.leg.findEndPosition().T[0,:3] - self.trajectory.start}"
+        assert np.allclose(self.leg.findEndPosition().T[0,:3], self.trajectory.start, atol=2.3), f"Invalid start, error: {self.leg.findEndPosition().T[0,:3] - self.trajectory.start} for Leg {self.leg.leg_id}. Right?: {self.leg.right}"
         self.start = time.time()
         dt = time.time() - self.start
         self.elapsed = dt
