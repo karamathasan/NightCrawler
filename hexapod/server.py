@@ -1,37 +1,24 @@
-# going to use sockets instead
-import socket
-import socketserver
+import zmq
 
 import json
-from flask import Flask, Request, Response, render_template, render_template_string
-from flask_cors import CORS
 import cv2
 from PIL import Image
+import time
+
+ctx = zmq.Context()
+videoSock = ctx.socket(zmq.PUB)
+videoSock.bind("tcp://*:5555")
 
 cap = cv2.VideoCapture(1)
 
-# app = Flask(__name__)
-app = Flask("server.py")
-CORS(app)
+def getFrame():
+    success, frame = cap.read()
+    if not success:
+        return None
+    _, buffer = cv2.imencode(".jpg",frame)
+    return buffer.tobytes()
 
-def generateFrame():
-    while True:
-        success, frame = cap.read()
-        if not success:
-            break
-        _, buffer = cv2.imencode(".jpg",frame)
-        fbytes = buffer.tobytes()
-        yield(b'--frame\r\n'
-              b'Content-Type: image/jpeg\r\n\n' + fbytes + b'\r\n')
-
-@app.route("/")
-def home():
-    # return json.dumps({"message":"hello"})
-
-    return Response(generateFrame(), mimetype='multipart/x-mixed-replace; boundary=frame')
-    # return "<h>test</h>"
-
-
-
-
-app.run(host="0.0.0.0",port=5000,debug=True)
+print("Starting 0MQ Server")
+while True:
+    videoSock.send(getFrame())
+    time.sleep(0.01)
