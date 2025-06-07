@@ -1,48 +1,66 @@
 import asyncio
+import zmq
 import pygame
-import keyboard
-import websockets
-import json
 
-# pygame setup
+import cv2
+import numpy as np
 
-pygame.init()
+# pygame.init()
 '''
 control scheme:
 left stick: strafe
 right stick: rotate
 '''
-joystick = pygame.joystick.Joystick(0)
+# joystick = pygame.joystick.Joystick(0)
 # rightStick = pygame.joystick.Joystick(1)
-pygame.joystick.init()
+# pygame.joystick.init()
 
-height = 300
-width = 400
+height = 600
+width = 800
 screen = pygame.display.set_mode((width, height))
 clock = pygame.time.Clock()
 running = True
-ip = "192.168.1.61"
 
-def UI(left, right):
-    pygame.draw.line(screen,"red",pygame.Vector2(width/2 - 50,height/2), pygame.Vector2(width/2 - 50, left * 100 + height/2), 25)
-    pygame.draw.line(screen,"blue",pygame.Vector2(width/2 + 50,height/2), pygame.Vector2(width/2 + 50, right * 100 + height/2), 25)
+addr = "tcp://192.168.1.200:5555"
+ctx = zmq.Context()
+s = ctx.socket(zmq.SUB)
+s.connect(addr)
+s.setsockopt(zmq.SUBSCRIBE, b'')
+print("Connected to address")
+
+# def UI(left, right):
+#     pygame.draw.line(screen,"red",pygame.Vector2(width/2 - 50,height/2), pygame.Vector2(width/2 - 50, left * 100 + height/2), 25)
+#     pygame.draw.line(screen,"blue",pygame.Vector2(width/2 + 50,height/2), pygame.Vector2(width/2 + 50, right * 100 + height/2), 25)
+
+def getFrame():
+    buffer = s.recv()
+
+    img_array = np.frombuffer(buffer, dtype=np.uint8)
+    frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+
+    if frame is not None:
+        frame = np.rot90(frame)
+        return frame
+            
+def frame2pix(frame):
+    print("frame")
+    frame = pygame.surfarray.make_surface(frame)
+    screen.blit(frame, (0,0))
 
 async def main():
     running = True
-    leftOld = joystick.get_axis(1)
-    rightOld = joystick.get_axis(3)
+    # leftOld = joystick.get_axis(1)
+    # rightOld = joystick.get_axis(3)
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                # await quit(motionQueue)
-                # drive_task.cancel()
-                # servo_task.cancel()
                 running = False
                 break
-
         screen.fill((0, 0, 0))
-        UI(joystick.get_axis(1),joystick.get_axis(3))
-        pygame.display.flip()
         
+        frame2pix(getFrame())
+        # UI(joystick.get_axis(1),joystick.get_axis(3))
+        pygame.display.flip()
+    asyncio.sleep(0.1)        
 asyncio.run(main())
 pygame.quit()
