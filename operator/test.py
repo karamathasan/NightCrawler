@@ -1,9 +1,10 @@
-import asyncio
-import zmq
-import pygame
 import keyboard
 import time
+import asyncio
+import threading
 
+import zmq
+import pygame
 import cv2
 import numpy as np
 
@@ -18,8 +19,8 @@ right stick: rotate
 
 height = 600
 width = 800
-screen = pygame.display.set_mode((width, height))
-clock = pygame.time.Clock()
+
+
 running = True
 
 addr = "tcp://100.121.88.110:"
@@ -34,10 +35,11 @@ videoSub.connect(addr + "5555")
 videoSub.setsockopt(zmq.SUBSCRIBE, b'')
 commsReq.connect("tcp://100.121.88.110:5556")
 
-commsReq.send(b"READY")
-print("READY sent. awaiting messge")
-ready = commsReq.recv()
-print("Connected to address")
+# print("test")
+# commsReq.send(b"READY")
+# print("READY sent. awaiting messge")
+# ready = commsReq.recv()
+# print("Connected to address")
 
 # def UI(left, right):
 #     pygame.draw.line(screen,"red",pygame.Vector2(width/2 - 50,height/2), pygame.Vector2(width/2 - 50, left * 100 + height/2), 25)
@@ -56,12 +58,19 @@ def frame2pix(frame):
     frame = pygame.surfarray.make_surface(frame)
     screen.blit(frame, (0,0))
 
-pygame.init()
+
 running = True
 # leftOld = joystick.get_axis(1)
 # rightOld = joystick.get_axis(3)
+
+pygame.init()
+screen = pygame.display.set_mode((width, height))
+clock = pygame.time.Clock()
+
 start = time.time()
 latest = start
+
+
 while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -69,18 +78,18 @@ while running:
             break
     screen.fill((0, 0, 0))
 
-    if keyboard.is_pressed("q"):
-        running = False
-        commsReq.send(b"QUIT")
-        break
+    # if keyboard.is_pressed("q"):
+    #     running = False
+    #     commsReq.send(b"QUIT")
+    #     break
     
-    frame2pix(getFrame())
+    # frame2pix(getFrame())
     # UI(joystick.get_axis(1),joystick.get_axis(3))
     pygame.display.flip()
     clock.tick(60)
 
     dt = time.time() - latest 
     latest = time.time()
-    print(f"\rFPS: {1/dt}", end = '', flush=True)
+    # print(f"\rFPS: {1/dt}", end = '', flush=True)
 commsReq.send(b"")
 pygame.quit()
