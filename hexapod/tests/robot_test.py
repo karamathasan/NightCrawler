@@ -1,7 +1,7 @@
 from DXLConfig import DXLConfig
 from motor import Motor
 # from robot_Drive import RobotDrive
-# from robot import Robot
+from robot import Robot, RobotConstants
 
 import time
 import numpy as np
@@ -12,7 +12,7 @@ from leg_actions import FollowTrajectory, TranslateLeg
 from motion_profile import LinearProfile, TrapezoidalProfile, CuberootProfile
 from actions import ActionQueue, ActionGroup, RepeatingGroup, Wait
 
-conf = DXLConfig("COM9")
+conf = DXLConfig("/dev/ttyACM0")
 conf.open()
 right1 = Leg(True, 1, Motor(1), Motor(2), Motor(3))
 right2 = Leg(True, 2, Motor(4), Motor(5), Motor(6))
@@ -42,27 +42,28 @@ def zero_legs():
 #   REST POSITION
 def lotus_rest():
     right1.setJoints(0,-80,-90)
-    right2.setJoints(0,-80,-90)
+    event = right2.setJoints(0,-80,-90)
     right3.setJoints(0,-80,-90)
 
     left1.setJoints(0,-80,-90)
     left2.setJoints(0,-80,-90)
     left3.setJoints(0,-80,-90)
+    return event
 
 #   STAND 
 def stand():
-    right1.setJoints(0,-35,90)
-    event = right2.setJoints(0,-35,90)
-    right3.setJoints(0,-35,90)
+    right1.setJoints(0,-10,70)
+    event = right2.setJoints(0,-10,70)
+    right3.setJoints(0,-10,70)
 
-    left1.setJoints(0,-35,90)
-    left2.setJoints(0,-35,90)
-    left3.setJoints(0,-35,90)
+    left1.setJoints(0,-10,70)
+    left2.setJoints(0,-10,70)
+    left3.setJoints(0,-10,70)
     return event
 
 # zero_legs()
-lotus_rest()()
-# stand()()
+# lotus_rest()()
+stand()()
 # left1.setJoint2(-55)
 
 # time.sleep(1)
@@ -70,8 +71,8 @@ lotus_rest()()
 queue = ActionQueue()
 
 disp = 70
-dur = 0.5
-speed = 300
+dur = 0.75
+speed = 100
 
 height = 120
 out = 95
@@ -101,7 +102,7 @@ k = 13/7
 #             QuadraticTrajectory(
 #                 left1.findEndPosition().T[0,:3],
 #                 left1.findEndPosition().T[0,:3] + np.array([0,0,-disp]),
-#                 left1.findEndPosition().T[0,:3] + np.array([0,35,-disp/2]),
+#                 left1.findEndPosition().T[0,:3] + np.array([0,35,-k*disp/2]),
 #                 dur
 #             ),
 #             speed
@@ -116,19 +117,47 @@ k = 13/7
 
 # HARDWARE BUG FOR LEG 1 
 # LEFT FORWARD CONFIG
+# INIT CONFIG
+right1toInit = FollowTrajectory(
+    right1,
+    QuadraticTrajectory(
+        right1.findEndPosition().T[0,:3],
+        right1.findEndPosition().T[0,:3] + np.array([0,0,disp]),
+        right1.findEndPosition().T[0,:3] + np.array([0,height,k*disp]),
+        dur
+    ),
+    speed
+)
+
+
+left3toInit = FollowTrajectory(
+    left3,
+    QuadraticTrajectory(
+        left3.findEndPosition().T[0,:3],
+        left3.findEndPosition().T[0,:3] + np.array([0,0,-disp]),
+        left3.findEndPosition().T[0,:3] + np.array([0,height,-k*disp]),
+        dur
+    ),
+    speed
+)
+
 queue.push(
     ActionGroup(
         ActionGroup(
+            # TranslateLeg(right1, np.array([0,0,disp]), dur),
+            # right1toInit,
             TranslateLeg(left2, np.array([0,0,disp/2]), dur),
             TranslateLeg(right3, np.array([0,0,disp]), dur)
         ),
         ActionGroup(
-            # TranslateLeg(left1, np.array([0,35,0]), dur),
+            TranslateLeg(left1, np.array([0,0,-disp]), dur),
             TranslateLeg(right2, np.array([0,0,-disp/2]), dur),
-            # TranslateLeg(left3, np.array([0,0,disp]), dur)
+            # left3toInit
+            # TranslateLeg(left3, np.array([0,0,-disp]), dur)
         )
     )
 )
+# queue.push(TranslateLeg(right1, np.array([0,0,-disp]), dur))
 queue.push(Wait(1))
 
 # IGNORING LEFT 1
@@ -165,7 +194,7 @@ leftReturn = ActionGroup(
     )
 )
 
-rightSReturn = ActionGroup(
+rightReturn = ActionGroup(
     FollowTrajectory(
         right1,
         QuadraticTrajectory(
@@ -227,10 +256,11 @@ rightPower = ActionGroup(
 # )
 
 # walk cycle
+queue.push(Wait(1))
 queue.push(
     RepeatingGroup(
         ActionGroup(
-            rightSReturn,
+            rightReturn,
             leftPower
         ),
         ActionGroup(
@@ -240,6 +270,28 @@ queue.push(
     )
 )
 
+# print(f"{right1.getJointAngles()}")
+# print(f"{left1.getJointAngles()}")
+# print(f"""
+# right:
+#     {right1.findEndPosition().T[0,:3]}
+#     {right2.findEndPosition().T[0,:3]}
+#     {right3.findEndPosition().T[0,:3]}
+# left:
+#     {left1.findEndPosition().T[0,:3]}
+#     {left2.findEndPosition().T[0,:3]}
+#     {left3.findEndPosition().T[0,:3]} 
+#       """)
+# print(f"""
+# right:
+#     {right1.findEndPosition((0,-10,70)).T[0,:3]}
+#     {right2.findEndPosition((0,-10,70)).T[0,:3]}
+#     {right3.findEndPosition((0,-10,70)).T[0,:3]}
+# left:
+#     {left1.findEndPosition((0,-10,70)).T[0,:3]}
+#     {left2.findEndPosition((0,-10,70)).T[0,:3]}
+#     {left3.findEndPosition((0,-10,70)).T[0,:3]} 
+#       """)
 queue.clear()
 while not queue.isEmpty() or queue.active is not None:
     if queue.active is None:

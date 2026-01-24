@@ -1,6 +1,6 @@
 from motor import Motor
 import numpy as np
-from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 
 class Leg():
     """
@@ -158,7 +158,7 @@ class Leg():
         # set angles 
 
 
-    def findEndPosition(self):
+    def findEndPosition(self, angles:tuple = None):
         def RZ(rad):
             return np.array([
                 [np.cos(rad),-np.sin(rad),0],
@@ -178,18 +178,23 @@ class Leg():
                 [rot, disp.T],
                 [np.zeros((1,3)),1]
             ])
+            
+        m1angle, m2angle, m3angle = self.getJointAngles()
+        if angles is not None:
+            assert len(angles) == 3, f"invalid number of elements in angles. got {len(angles)}"
+            m1angle, m2angle, m3angle = angles
+            
         if self.right:
-            H0 = H(RY(np.deg2rad(self.motor1.getAngle() + self.leg_origin_angle)), self.leg_origin)
-            H1 = H(RZ(np.deg2rad(-self.motor2.getAngle())), LegConstants.FEMUR)
-            H2 = H(RZ(np.deg2rad(-self.motor3.getAngle())), LegConstants.TIBIA)
+            H0 = H(RY(np.deg2rad(m1angle + self.leg_origin_angle)), self.leg_origin)
+            H1 = H(RZ(np.deg2rad(-m2angle)), LegConstants.FEMUR)
+            H2 = H(RZ(np.deg2rad(-m3angle)), LegConstants.TIBIA)
             H3 = H(np.eye(3),LegConstants.TARSUS)
         else:
-            H0 = H(RY(np.deg2rad(self.motor1.getAngle() + self.leg_origin_angle)), self.leg_origin)
-            H1 = H(RZ(np.deg2rad(self.motor2.getAngle())), LegConstants.FEMUR)
-            H2 = H(RZ(np.deg2rad(self.motor3.getAngle())), LegConstants.TIBIA)
+            H0 = H(RY(np.deg2rad(m1angle + self.leg_origin_angle)), self.leg_origin)
+            H1 = H(RZ(np.deg2rad(m2angle)), LegConstants.FEMUR)
+            H2 = H(RZ(np.deg2rad(m3angle)), LegConstants.TIBIA)
             H3 = H(np.eye(3),LegConstants.TARSUS)
         return (H0 @ H1 @ H2 @ H3) @ np.array([[0,0,0,1]]).T
-    
 
 class LegConstants():
     # in mm

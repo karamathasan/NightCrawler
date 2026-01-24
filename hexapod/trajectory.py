@@ -55,6 +55,10 @@ class QuadraticTrajectory(BezierTrajectory):
             self.lerp(self.c1,self.end,t),
             t
         )
+    
+    def __str__(self):
+        indent = " " * 4
+        return f"Quadtric trajectory \n{indent}Start:{self.start}\n{indent}End:{self.end}\n{indent}Control:{self.c1}"
 
 class CubicTrajectory(BezierTrajectory):
     def __init__(self,start, end, c1:np.ndarray, c2:np.ndarray, duration, profile = LinearProfile()):

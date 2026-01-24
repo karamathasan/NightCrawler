@@ -61,9 +61,14 @@ class Wait(ActionBase):
 
     def init(self):
         self.start = time.time()
+        
+    # def execute(self):
+        # print(time.time() - self.start)
 
     def isDone(self):
-        return time.time()-self.start >= self.wait_time
+        # print("waiting done")
+        return (time.time()-self.start) >= self.wait_time
+        # return False
     
 class SequentialGroup(ActionGroup):
     def __init__(self, *actions: ActionBase):

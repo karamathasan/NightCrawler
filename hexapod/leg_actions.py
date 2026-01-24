@@ -66,7 +66,7 @@ class TranslateLeg(ActionBase):
 
 
 class FollowTrajectory(ActionBase):
-    def __init__(self, leg:Leg, trajectory: Trajectory, maxspeed):
+    def __init__(self, leg:Leg, trajectory: Trajectory, maxspeed, ignore_start = False):
         self.leg = leg
         self.trajectory = trajectory
 
@@ -75,14 +75,16 @@ class FollowTrajectory(ActionBase):
         self.start = time.time()
         self.elapsed = 0
         self.maxspeed = maxspeed
+        self.ignore_start = ignore_start
 
     def init(self):
         # angles = [*self.leg.getJointAngles()]
         # goal = self.leg.solveEndPosition(self.trajectory.start)
         # print(angles)
         # print(goal)
-
-        assert np.allclose(self.leg.findEndPosition().T[0,:3], self.trajectory.start, atol=2.3), f"Invalid start, error: {self.leg.findEndPosition().T[0,:3] - self.trajectory.start} for Leg {self.leg.leg_id}. Right?: {self.leg.right}"
+        dir = "Right" if self.leg.right else "Left"
+        if not self.ignore_start:
+            assert np.allclose(self.leg.findEndPosition().T[0,:3], self.trajectory.start, atol=2.3), f"Invalid start, error: {self.leg.findEndPosition().T[0,:3] - self.trajectory.start} for {dir} Leg {self.leg.leg_id}.\n{self.trajectory}"
         self.start = time.time()
         dt = time.time() - self.start
         self.elapsed = dt

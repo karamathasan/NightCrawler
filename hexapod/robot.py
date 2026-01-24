@@ -1,3 +1,4 @@
+import numpy as np
 # from imu import IMUSensor
 # from hexapod.robot_drive import GaitDrive
 from actions import ActionQueue
@@ -58,5 +59,11 @@ class Robot():
                 else:
                     self.queue.active.execute()
 
-            
-        
+class RobotConstants:
+    LEGANGLES = (0,-10,70)
+    RIGHT1START = np.array([ 158.59078135, -154.74423213, -275.68508234])
+    RIGHT2START = np.array([ 318.04567543, -154.74423213, -0.49889572])
+    RIGHT3START = np.array([ 159.45489408, -154.74423213, 275.18618663])
+    LEFT1START = np.array([-159.45489408, -154.74423213, -275.18618663])
+    LEFT2START = np.array([-318.04567543, -154.74423213,    0.49889572])
+    LEFT3START = np.array([-158.59078135, -154.74423213,  275.68508234])

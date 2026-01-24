@@ -8,8 +8,10 @@ import zmq
 import cv2
 from PIL import Image
 
-op_addr = "tcp://100.126.75.120:" #laptop ip
+# op_addr = "tcp://100.126.75.120:" #laptop ip
+op_addr = "tcp://100.121.88.110:" #msi laptop ip
 # op_addr = "tcp://100.125.63.1:" #pc ip
+
 ctx = zmq.Context()
 commsRep = ctx.socket(zmq.REP)
 depthSub = ctx.socket(zmq.SUB)
@@ -58,15 +60,16 @@ def sendFrame():
         success, frame = cap.read()
         if not success:
             return None
-        dw = int(CAMERA_RES[0]//4)
-        dh = int(CAMERA_RES[1]//4)
+        scale_factor = 1
+        dw = int(CAMERA_RES[0]//scale_factor)
+        dh = int(CAMERA_RES[1]//scale_factor)
 
         frame = cv2.resize(frame, (dw,dh))
-        # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        # frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 75]
-        # _, buffer = cv2.imencode(".jpg",frame)
-        _, buffer = cv2.imencode(".jpg",frame,encode_param)
+        _, buffer = cv2.imencode(".jpg",frame)
+        # _, buffer = cv2.imencode(".jpg",frame,encode_param)
         bufferq.append(buffer)
         if len(bufferq) > 0:
             try:
