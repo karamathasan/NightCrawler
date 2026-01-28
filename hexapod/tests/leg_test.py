@@ -75,37 +75,22 @@ height = 40
 out = 95
 k = 13/7
 
+
 right1toInit = FollowTrajectory(
     right1,
     LinearTrajectory(
         RobotConstants.RIGHT1START,
-        RobotConstants.RIGHT1START + np.array([0,0,-disp]),
-        dur
-    ),
-    speed
-)
-
-right1return = FollowTrajectory(
-    right1,
-    QuadraticTrajectory(
-        RobotConstants.RIGHT1START + np.array([0,0,-disp]),
         RobotConstants.RIGHT1START + np.array([0,0,disp]),
-        RobotConstants.RIGHT1START + np.array([0,height,0]),
         dur
     ),
     speed
-    # ignore_start=True
 )
-
-queue.push(
-    # Wait(5)
-    SequentialGroup(
-        Wait(1),
-        right1toInit,
-        Wait(1),
-        right1return
-    )
+goal_angles = right1.solveEndPosition(
+    RobotConstants.RIGHT1START + np.array([0,0,disp])
 )
+print(f"goal: {RobotConstants.RIGHT1START + np.array([0,0,disp])}")
+print(f"solved angles: {goal_angles}")
+queue.push(right1toInit)
 
 # queue.clear()
 while not queue.isEmpty() or queue.active is not None:
@@ -119,5 +104,8 @@ while not queue.isEmpty() or queue.active is not None:
             queue.active = None
         else:
             queue.active.execute()
+print(f"end pos:{right1.findEndPosition().T[0,:3]}")
+print(f"end angles:{right1.getJointAngles()}")
+
 
 conf.close()

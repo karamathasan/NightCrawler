@@ -88,13 +88,18 @@ class DXLConfig():
         return self.packetHandler.getRxPacketError(error)
 
     def findIDs(self):
-        # for test_id in range(0, 254):
-        for test_id in range(0, 19):
+        all_present = True
+        print("Pinging motors 1-18 ...")
+        for test_id in range(1, 19):
             dxl_model_number, dxl_comm_result, dxl_error = self.packetHandler.ping(self.portHandler, test_id)
             if dxl_comm_result == COMM_SUCCESS:
                 self.availableMotors.append(test_id)
-                print(f"Found Dynamixel at ID: {test_id}, Model: {dxl_model_number}")   
-        print("Pinging complete")
+                print(f"Found Dynamixel at ID: {test_id}, Model: {dxl_model_number}")  
+            else:
+                all_present = False 
+        print("Pinging complete!")
+        if all_present:
+            print("===/ ALL MOTORS WERE FOUND /===") 
 
     def findFirstID(self):
         for test_id in range(0, 254):

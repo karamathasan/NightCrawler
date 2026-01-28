@@ -4,16 +4,6 @@ import time
 import numpy as np
 from leg import Leg
 conf = DXLConfig("/dev/ttyACM0")
-# conf = DXLConfig("COM9")
 conf.open()
-
 conf.findIDs()
-
-m = Motor(12)
-m.setBounds()
-m.setAngle(45)()
-m.setAngle(90)()
-m.setAngle(-45)()
-m.setAngle(0)()
-
 conf.close()

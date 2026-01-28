@@ -67,7 +67,17 @@ stand()()
 
 queue = ActionQueue()
 
+def RY(rad):
+    return np.array([
+        [np.cos(rad), 0, np.sin(rad)],
+        [0,1,0],
+        [-np.sin(rad),0, np.cos(rad)]
+    ])
+
 disp = 40
+theta = np.deg2rad(45)
+
+
 dur = 1
 speed = 100
 
@@ -79,7 +89,7 @@ right1toInit = FollowTrajectory(
     right1,
     LinearTrajectory(
         RobotConstants.RIGHT1START,
-        RobotConstants.RIGHT1START + np.array([0,0,-disp]),
+        RobotConstants.RIGHT1START + np.array([0,0,disp]),
         dur
     ),
     speed
@@ -97,15 +107,38 @@ right1return = FollowTrajectory(
     # ignore_start=True
 )
 
-queue.push(
-    # Wait(5)
-    SequentialGroup(
-        Wait(1),
-        right1toInit,
-        Wait(1),
-        right1return
-    )
+right1stance = FollowTrajectory(
+    right1,
+    LinearTrajectory(
+        RobotConstants.RIGHT1START + np.array([0,0,-disp]),
+        RobotConstants.RIGHT1START + np.array([0,0,disp]),
+        dur
+    ),
+    speed
 )
+
+right1swing = FollowTrajectory(
+    right1,
+    QuadraticTrajectory(
+        RobotConstants.RIGHT1START + np.array([0,0,disp]),
+        RobotConstants.RIGHT1START + np.array([0,0,-disp]),
+        RobotConstants.RIGHT1START + np.array([0,height,0]),
+        dur
+    ),
+    speed
+    # ignore_start=True
+)
+
+
+single_cycle = SequentialGroup(
+    right1swing,
+    right1stance
+)
+
+queue.push(Wait(1))
+queue.push(right1toInit)
+# queue.push(Wait(1))
+queue.push(single_cycle)
 
 # queue.clear()
 while not queue.isEmpty() or queue.active is not None:

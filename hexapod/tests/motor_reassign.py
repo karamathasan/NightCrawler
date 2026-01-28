@@ -8,7 +8,7 @@ print(conf.findIDs())
 
 current = conf.findFirstID()
 print(current)
-new = 10
+new = 12
 
 m = Motor(current)
 answer = input(f"Reassigning motor {current} to {new}. Continue?")
